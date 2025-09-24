@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact Us - Bharat Breed</title>
+    <title>Contact Us - Agriveda Breed</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
             <div class="brand">
-                <img src="LOGO.png" alt="Bharat Breed Logo" class="logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="logo-fallback" style="display: none;">BB</div>
-                <span>Bharat Breed</span>
+                <img src="LOGO.png" alt="Agriveda Breed Logo" class="logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="logo-fallback" style="display: none;">AG</div>
+                <span>Agriveda Breed</span>
             </div>
             <ul class="nav-links">
                 <li><a href="home.html">Home</a></li>
@@ -23,6 +23,7 @@
             </ul>
         </div>
     </nav>
+
     <div class="container">
         <header>
             <a id="contact"></a>
@@ -40,7 +41,7 @@
                         <div class="contact-icon">📧</div>
                         <h4>Email</h4>
                         <p>For general inquiries and support</p>
-                        <a href="mailto:ompawar2897@gmail.com">ompawar2897@gmail.com</a>
+                        <a href="mailto:sjeevankumar98@gmail.com">sjeevankumar98@gmail.com</a>
                     </div>
                     <div class="contact-card">
                         <div class="contact-icon">💬</div>
@@ -110,71 +111,3 @@
                         <h4>How many breeds can the system identify?</h4>
                         <p>Our database includes 8 buffalo breeds and 20 cattle breeds, covering the most common breeds worldwide.</p>
                     </div>
-                    <div class="faq-item">
-                        <h4>Is there a cost to use the system?</h4>
-                        <p>Currently, our classification system is available free of charge for research and educational purposes.</p>
-                    </div>
-                    <div class="faq-item">
-                        <h4>Can I integrate this into my application?</h4>
-                        <p>Yes, we offer API integration for commercial applications. Please contact us for partnership opportunities.</p>
-                    </div>
-                    <div class="faq-item">
-                        <h4>How long does analysis take?</h4>
-                        <p>Most images are processed within 2-3 seconds, providing near real-time classification results.</p>
-                    </div>
-                </div>
-            </section>
-
-            <section class="team-section">
-                <h3>Our Team</h3>
-                <div class="team-grid">
-                    <div class="team-card">
-                        <div class="team-avatar">👨‍💻</div>
-                        <h4>Development Team</h4>
-                        <p>Expert developers specializing in computer vision and machine learning technologies</p>
-                    </div>
-                    <div class="team-card">
-                        <div class="team-avatar">🔬</div>
-                        <h4>Research Team</h4>
-                        <p>AI researchers focused on advancing classification algorithms and accuracy</p>
-                    </div>
-                    <div class="team-card">
-                        <div class="team-avatar">📊</div>
-                        <h4>Data Team</h4>
-                        <p>Specialists in breed database management and data quality assurance</p>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <footer>
-            <p>🔬 Professional AI Analysis • High Accuracy Classification • Industry-Grade Technology</p>
-        </footer>
-    </div>
-
-    <script src="breed-database.js"></script>
-    <script src="script.js"></script>
-    <script>
-        // Contact form handling
-        document.getElementById('contactForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const name = formData.get('name');
-            const email = formData.get('email');
-            const subject = formData.get('subject');
-            const message = formData.get('message');
-            
-            // Simple validation
-            if (!name || !email || !subject || !message) {
-                alert('Please fill in all required fields.');
-                return;
-            }
-            
-            // Simulate form submission
-            alert('Thank you for your message! We will get back to you soon.');
-            this.reset();
-        });
-    </script>
-</body>
-</html>
