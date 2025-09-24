@@ -1,6 +1,7 @@
-fastapi
-uvicorn
-numpy
-opencv-python
-scikit-image
-pillow
+Flask==2.3.3
+Werkzeug==2.3.7
+Pillow==10.0.0
+opencv-python==4.8.1.78
+scipy==1.11.2
+pandas==2.1.1
+PyYAML==6.0.1
