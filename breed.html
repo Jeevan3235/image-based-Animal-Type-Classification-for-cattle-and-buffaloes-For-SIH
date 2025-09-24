@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breed Database - Bharat Breed</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <img src="LOGO.png" alt="Bharat Breed Logo" class="logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="logo-fallback" style="display: none;">BB</div>
+                <span>Bharat Breed</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="home.html">Home</a></li>
+                <li><a href="upload.html">Upload</a></li>
+                <li><a href="info.html">Info</a></li>
+                <li><a href="breeds.html" class="active">Breeds</a></li>
+                <li><a href="contact.html">Contact Us</a></li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container">
+        <header>
+            <a id="breed-database"></a>
+            <h1>Comprehensive Breed Database</h1>
+            <p>Explore our extensive database of cattle and buffalo breeds</p>
+        </header>
+
+        <main>
+            <section class="breed-database" id="breed-database">
+                <h3>Comprehensive Breed Database</h3>
+                <div class="breed-categories">
+                    <div class="breed-category">
+                        <h4>Buffalo Breeds (8 breeds)</h4>
+                        <div class="breed-list" id="buffaloBreeds">
+                            <!-- Buffalo breeds will be populated here -->
+                        </div>
+                    </div>
+                    <div class="breed-category">
+                        <h4>Cattle Breeds (20 breeds)</h4>
+                        <div class="breed-list" id="cattleBreeds">
+                            <!-- Cattle breeds will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="breed-info" id="breedInfo" style="display: none;">
+                <h4>Breed Information</h4>
+                <div class="breed-details" id="breedDetails">
+                    <!-- Breed details will be populated here -->
+                </div>
+            </section>
+
+            <section class="breed-search">
+                <h3>Search Breeds</h3>
+                <div class="search-container">
+                    <input type="text" id="breedSearch" placeholder="Search for a specific breed..." class="search-input">
+                    <button class="search-btn" onclick="searchBreeds()">Search</button>
+                </div>
+                <div class="search-results" id="searchResults"></div>
+            </section>
+
+            <section class="breed-stats">
+                <h3>Breed Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">8</div>
+                        <div class="stat-label">Buffalo Breeds</div>
+                        <p>Comprehensive coverage of major buffalo breeds worldwide</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">20</div>
+                        <div class="stat-label">Cattle Breeds</div>
+                        <p>Extensive database of cattle breeds from different regions</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">28</div>
+                        <div class="stat-label">Total Breeds</div>
+                        <p>Complete database for accurate breed identification</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">95%</div>
+                        <div class="stat-label">Accuracy Rate</div>
+                        <p>High precision breed identification and classification</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="breed-features">
+                <h3>Breed Identification Features</h3>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🎨</div>
+                        <h4>Color Analysis</h4>
+                        <p>Advanced color histogram analysis for accurate breed identification based on coat colors and patterns</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📐</div>
+                        <h4>Morphological Features</h4>
+                        <p>Analysis of body structure, horn shape, and size characteristics specific to each breed</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔍</div>
+                        <h4>Pattern Recognition</h4>
+                        <p>Detection of unique patterns, markings, and distinctive features that identify specific breeds</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h4>Confidence Scoring</h4>
+                        <p>Reliable confidence scores for each breed identification with detailed analysis reports</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>🔬 Professional AI Analysis • High Accuracy Classification • Industry-Grade Technology</p>
+        </footer>
+    </div>
+
+    <script src="breed-database.js"></script>
+    <script src="script.js"></script>
+    <script>
+        // Additional breed search functionality
+        function searchBreeds() {
+            const searchTerm = document.getElementById('breedSearch').value.toLowerCase();
+            const resultsContainer = document.getElementById('searchResults');
+            
+            if (!searchTerm) {
+                resultsContainer.innerHTML = '';
+                return;
+            }
+            
+            let results = [];
+            
+            // Search in buffalo breeds
+            Object.values(BREED_DATABASE.buffalo).forEach(breed => {
+                if (breed.name.toLowerCase().includes(searchTerm) || 
+                    breed.origin.toLowerCase().includes(searchTerm) ||
+                    breed.characteristics.color.toLowerCase().includes(searchTerm)) {
+                    results.push({...breed, type: 'buffalo'});
+                }
+            });
+            
+            // Search in cattle breeds
+            Object.values(BREED_DATABASE.cattle).forEach(breed => {
+                if (breed.name.toLowerCase().includes(searchTerm) || 
+                    breed.origin.toLowerCase().includes(searchTerm) ||
+                    breed.characteristics.color.toLowerCase().includes(searchTerm)) {
+                    results.push({...breed, type: 'cattle'});
+                }
+            });
+            
+            if (results.length === 0) {
+                resultsContainer.innerHTML = '<p>No breeds found matching your search.</p>';
+                return;
+            }
+            
+            let resultsHTML = '<h4>Search Results:</h4><div class="search-results-grid">';
+            results.forEach(breed => {
+                resultsHTML += `
+                    <div class="search-result-item" onclick="showBreedDetails('${breed.name}', '${breed.type}')">
+                        <strong>${breed.name}</strong> (${breed.type})
+                        <br><small>${breed.origin} • ${breed.characteristics.color}</small>
+                    </div>
+                `;
+            });
+            resultsHTML += '</div>';
+            
+            resultsContainer.innerHTML = resultsHTML;
+        }
+        
+        // Allow search on Enter key
+        document.getElementById('breedSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchBreeds();
+            }
+        });
+    </script>
+</body>
+</html>
