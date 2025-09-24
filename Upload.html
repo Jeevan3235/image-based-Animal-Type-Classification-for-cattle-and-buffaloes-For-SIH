@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Image - Bharat Breed</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <img src="LOGO.png" alt="Bharat Breed Logo" class="logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="logo-fallback" style="display: none;">BB</div>
+                <span>Bharat Breed</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="home.html">Home</a></li>
+                <li><a href="upload.html" class="active">Upload</a></li>
+                <li><a href="info.html">Info</a></li>
+                <li><a href="breeds.html">Breeds</a></li>
+                <li><a href="contact.html">Contact Us</a></li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container">
+        <header>
+            <a id="upload"></a>
+            <h1>Upload & Analyze Image</h1>
+            <p>Upload an image of cattle or buffalo for instant AI analysis</p>
+        </header>
+
+        <main>
+            <div class="upload-section" id="upload">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">⚡</div>
+                        <h3>Upload Image</h3>
+                        <p>Drag & drop an image here or click to browse</p>
+                        <input type="file" id="fileInput" accept="image/jpeg,image/jpg,image/png" hidden>
+                        <button class="browse-btn" onclick="document.getElementById('fileInput').click()">
+                            Browse Files
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <h3>Image Preview</h3>
+                <div class="image-container">
+                    <img id="previewImage" alt="Preview">
+                </div>
+                <button class="classify-btn" id="classifyBtn">
+                    <span class="btn-text">Analyze Image</span>
+                    <div class="loading-spinner" style="display: none;"></div>
+                </button>
+            </div>
+
+            <div class="result-section" id="resultSection" style="display: none;" aria-live="polite">
+                <a id="results"></a>
+                <h3>Analysis Result</h3>
+                <div class="result-card">
+                    <div class="result-item">
+                        <span class="label">Predicted Type:</span>
+                        <span class="value" id="predictedType">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Confidence Score:</span>
+                        <span class="value" id="confidenceScore">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Predicted Breed:</span>
+                        <span class="value" id="predictedBreed">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">Breed Confidence:</span>
+                        <span class="value" id="breedConfidence">-</span>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="confidenceFill"></div>
+                    </div>
+                </div>
+                
+                <div class="breed-info" id="breedInfo" style="display: none;">
+                    <h4>Breed Information</h4>
+                    <div class="breed-details" id="breedDetails">
+                        <!-- Breed details will be populated here -->
+                    </div>
+                </div>
+                
+                <div class="debug-info" id="debugInfo" style="display: none;">
+                    <h4>Analysis Details</h4>
+                    <div id="debugContent"></div>
+                </div>
+            </div>
+
+            <div class="instructions-section">
+                <h3>How to Get Best Results</h3>
+                <div class="instructions-grid">
+                    <div class="instruction-card">
+                        <div class="instruction-icon">📸</div>
+                        <h4>Clear Image</h4>
+                        <p>Use high-resolution images with good lighting and minimal background interference</p>
+                    </div>
+                    <div class="instruction-card">
+                        <div class="instruction-icon">🎯</div>
+                        <h4>Focus on Animal</h4>
+                        <p>Ensure the animal is clearly visible and takes up a significant portion of the image</p>
+                    </div>
+                    <div class="instruction-card">
+                        <div class="instruction-icon">💡</div>
+                        <h4>Good Lighting</h4>
+                        <p>Natural lighting works best for accurate color analysis and feature detection</p>
+                    </div>
+                    <div class="instruction-card">
+                        <div class="instruction-icon">📐</div>
+                        <h4>Proper Angle</h4>
+                        <p>Side view or three-quarter view provides the best results for breed identification</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>🔬 Professional AI Analysis • High Accuracy Classification • Industry-Grade Technology</p>
+        </footer>
+    </div>
+
+    <script src="breed-database.js"></script>
+    <script src="ml_classifier.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
