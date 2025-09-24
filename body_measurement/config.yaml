@@ -1,0 +1,42 @@
+# Animal Classification System Configuration
+
+system:
+  name: "AI-Based Animal Type Classification System"
+  version: "1.0"
+  description: "Cattle and Buffalo Classification with Body Measurements"
+
+classification:
+  model_path: "cattle_buffalo_model.joblib"
+  metadata_path: "cattlebuffalomodelmetadata.json"
+  confidence_threshold: 0.7
+  supported_formats: [".jpg", ".jpeg", ".png", ".bmp"]
+
+measurements:
+  units: "pixels"
+  calibration_required: true
+  reference_length_cm: 100  # Reference length for calibration
+  measurements_to_extract:
+    - "body_length"
+    - "height_withers"
+    - "chest_width"
+    - "rump_angle"
+    - "body_condition_score"
+
+bpa_integration:
+  database_path: "animal_classification.db"
+  auto_save: true
+  export_formats: ["csv", "json"]
+  backup_interval_hours: 24
+
+web_interface:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+  upload_folder: "uploads"
+  max_file_size_mb: 16
+
+logging:
+  level: "INFO"
+  file: "animal_classification.log"
+  max_size_mb: 10
+  backup_count: 5
