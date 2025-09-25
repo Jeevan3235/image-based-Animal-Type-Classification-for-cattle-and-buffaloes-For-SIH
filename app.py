@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Unified Flask Backend for Cattle vs Buffalo Classification with Body Measurements
-Combines classification, body measurements, and BPA integration
+Focuses on body length, height at withers, chest width, and rump angle
 """
 
 from flask import Flask, request, jsonify, render_template, send_file
@@ -14,7 +14,6 @@ import joblib
 import json
 from pathlib import Path
 import logging
-import yaml
 import sqlite3
 import pandas as pd
 from datetime import datetime
@@ -42,7 +41,7 @@ class BodyMeasurementProcessor:
         self.measurement_units = "pixels"
     
     def process_image(self, image_array):
-        """Extract body measurements from animal image"""
+        """Extract specific body measurements from animal image"""
         try:
             if image_array is None:
                 return {"error": "Invalid image"}
@@ -51,12 +50,12 @@ class BodyMeasurementProcessor:
             processed_image = self.preprocess_image(image_array)
             
             # Detect animal body
-            body_contour = self.detect_animal_body(processed_image)
+            body_contour, bounding_rect = self.detect_animal_body(processed_image)
             if body_contour is None:
                 return {"error": "Could not detect animal body"}
             
-            # Extract measurements
-            measurements = self.extract_measurements(body_contour, image_array.shape)
+            # Extract specific measurements
+            measurements = self.extract_specific_measurements(body_contour, bounding_rect, image_array)
             return measurements
             
         except Exception as e:
@@ -76,13 +75,13 @@ class BodyMeasurementProcessor:
         return cleaned
     
     def detect_animal_body(self, processed_image):
-        """Detect the main animal body contour"""
+        """Detect the main animal body contour with bounding box"""
         contours, _ = cv2.findContours(
             processed_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
         
         if not contours:
-            return None
+            return None, None
         
         # Filter contours by area and aspect ratio
         valid_contours = []
@@ -91,67 +90,134 @@ class BodyMeasurementProcessor:
             x, y, w, h = cv2.boundingRect(contour)
             aspect_ratio = w / h
             
-            if area > 1000 and 0.3 < aspect_ratio < 3.0:
+            # Animal-specific size constraints
+            if area > 5000 and 0.5 < aspect_ratio < 2.5:
                 valid_contours.append(contour)
         
         if not valid_contours:
-            return None
+            return None, None
         
-        return max(valid_contours, key=cv2.contourArea)
+        # Get largest valid contour
+        largest_contour = max(valid_contours, key=cv2.contourArea)
+        bounding_rect = cv2.boundingRect(largest_contour)
+        
+        return largest_contour, bounding_rect
     
-    def extract_measurements(self, contour, image_shape):
-        """Extract various body measurements from contour"""
-        x, y, w, h = cv2.boundingRect(contour)
+    def extract_specific_measurements(self, contour, bounding_rect, original_image):
+        """Extract specific body measurements: body length, height at withers, chest width, rump angle"""
+        x, y, w, h = bounding_rect
         
-        # Basic measurements
+        # 1. Body Length (horizontal extent)
         body_length = w
+        
+        # 2. Height at Withers (vertical extent at front portion)
         height_at_withers = h
         
-        # Calculate convex hull
+        # 3. Chest Width (width at the chest region - middle section)
+        chest_width = self.calculate_chest_width(contour, x, y, w, h)
+        
+        # 4. Rump Angle (angle of the rear portion)
+        rump_angle = self.calculate_rump_angle(contour)
+        
+        # 5. Additional useful measurements
+        body_area = cv2.contourArea(contour)
         hull = cv2.convexHull(contour)
         hull_area = cv2.contourArea(hull)
         
-        # Estimate chest width
-        moments = cv2.moments(contour)
-        if moments['m00'] != 0:
-            cx = int(moments['m10'] / moments['m00'])
-            cy = int(moments['m01'] / moments['m00'])
-        else:
-            cx, cy = x + w//2, y + h//2
-        
-        # Calculate rump angle
-        rump_angle = self.calculate_rump_angle(contour)
+        # Calculate body condition score based on contour shape
+        body_condition_score = self.calculate_body_condition(contour, hull_area)
         
         measurements = {
-            "body_length_pixels": int(body_length),
-            "height_withers_pixels": int(height_at_withers),
-            "chest_width_pixels": int(w * 0.6),
-            "rump_angle_degrees": float(rump_angle),
-            "body_area_pixels": int(hull_area),
-            "body_condition_score": self.calculate_body_condition(contour, hull_area),
-            "contour_centroid": (int(cx), int(cy))
+            "body_length": int(body_length),
+            "height_at_withers": int(height_at_withers),
+            "chest_width": int(chest_width),
+            "rump_angle": float(rump_angle),
+            "body_area": int(body_area),
+            "body_condition_score": float(body_condition_score),
+            "bounding_box": {
+                "x": int(x),
+                "y": int(y),
+                "width": int(w),
+                "height": int(h)
+            }
         }
         
         return measurements
     
-    def calculate_rump_angle(self, contour):
-        """Calculate rump angle from contour"""
+    def calculate_chest_width(self, contour, x, y, w, h):
+        """Calculate chest width at the middle section of the animal"""
         try:
-            if len(contour) >= 5:
-                ellipse = cv2.fitEllipse(contour)
-                angle = ellipse[2]
-                return angle % 180
+            # Create a mask for the contour
+            mask = np.zeros((h, w), dtype=np.uint8)
+            contour_offset = contour - [x, y]
+            cv2.fillPoly(mask, [contour_offset], 255)
+            
+            # Find the horizontal slice at 40% height from top (chest region)
+            slice_height = int(h * 0.4)
+            if slice_height < h:
+                slice_row = mask[slice_height, :]
+                white_pixels = np.where(slice_row == 255)[0]
+                if len(white_pixels) > 0:
+                    chest_width = white_pixels[-1] - white_pixels[0]
+                    return max(chest_width, w * 0.3)  # Ensure reasonable minimum
+            return w * 0.6  # Fallback estimation
         except:
-            pass
-        return 45.0
+            return w * 0.6  # Fallback estimation
     
-    def calculate_body_condition(self, contour, area):
-        """Simplified body condition score"""
-        hull = cv2.convexHull(contour)
-        hull_area = cv2.contourArea(hull)
-        solidity = area / hull_area if hull_area > 0 else 0.5
-        bcs = 1 + (solidity - 0.5) * 8
-        return max(1, min(5, bcs))
+    def calculate_rump_angle(self, contour):
+        """Calculate rump angle using linear regression on rear points"""
+        try:
+            if len(contour) < 5:
+                return 45.0
+            
+            # Get contour points
+            points = contour.reshape(-1, 2)
+            
+            # Find rear section (rightmost points for horizontal animal)
+            x_coords = points[:, 0]
+            rear_threshold = np.percentile(x_coords, 70)  # Last 30% of points
+            rear_points = points[x_coords >= rear_threshold]
+            
+            if len(rear_points) < 2:
+                return 45.0
+            
+            # Fit line to rear points
+            vx, vy, x0, y0 = cv2.fitLine(rear_points, cv2.DIST_L2, 0, 0.01, 0.01)
+            angle = np.arctan2(vy, vx)[0] * 180 / np.pi
+            angle = angle % 180
+            
+            # Normalize angle to be between 0-90 degrees for rump
+            if angle > 90:
+                angle = 180 - angle
+            
+            return max(10, min(80, angle))  # Reasonable range for animal rump
+            
+        except Exception as e:
+            logger.warning(f"Rump angle calculation failed: {e}")
+            return 45.0
+    
+    def calculate_body_condition(self, contour, hull_area):
+        """Calculate body condition score based on contour shape and fullness"""
+        try:
+            contour_area = cv2.contourArea(contour)
+            solidity = contour_area / hull_area if hull_area > 0 else 0.5
+            
+            # Additional shape metrics
+            perimeter = cv2.arcLength(contour, True)
+            circularity = (4 * np.pi * contour_area) / (perimeter * perimeter) if perimeter > 0 else 0
+            
+            # Combine metrics for body condition score (1-5 scale)
+            bcs = 1 + (solidity - 0.4) * 10 + circularity * 2
+            return max(1.0, min(5.0, bcs))
+            
+        except:
+            return 3.0  # Average condition
+    
+    def calibrate_measurements(self, reference_length_cm, reference_length_pixels):
+        """Calibrate pixel measurements to real-world units"""
+        self.pixels_to_cm = reference_length_cm / reference_length_pixels
+        self.measurement_units = "cm"
+        logger.info(f"Calibrated: 1 pixel = {self.pixels_to_cm:.4f} cm")
 
 class BPAIntegration:
     def __init__(self, database_path="animal_classification.db"):
@@ -170,13 +236,10 @@ class BPAIntegration:
                 animal_type TEXT,
                 confidence REAL,
                 body_length REAL,
-                height_withers REAL,
+                height_at_withers REAL,
                 chest_width REAL,
                 rump_angle REAL,
                 body_condition_score REAL,
-                breed TEXT,
-                breed_confidence REAL,
-                image_path TEXT,
                 filename TEXT,
                 processed_by TEXT,
                 notes TEXT
@@ -184,6 +247,7 @@ class BPAIntegration:
         ''')
         conn.commit()
         conn.close()
+        logger.info("Database initialized successfully")
     
     def save_record(self, classification_result, filename=None, processed_by="auto", notes=""):
         """Save classification record to database"""
@@ -195,23 +259,20 @@ class BPAIntegration:
             
             cursor.execute('''
                 INSERT INTO animal_records (
-                    timestamp, animal_type, confidence, body_length, height_withers,
-                    chest_width, rump_angle, body_condition_score, breed, breed_confidence,
-                    image_path, filename, processed_by, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    timestamp, animal_type, confidence, body_length, height_at_withers,
+                    chest_width, rump_angle, body_condition_score, filename, 
+                    processed_by, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 classification_result.get('timestamp', datetime.now().isoformat()),
                 classification_result.get('animal_type', 'unknown'),
                 classification_result.get('confidence', 0.0),
-                measurements.get('body_length_pixels', 0),
-                measurements.get('height_withers_pixels', 0),
-                measurements.get('chest_width_pixels', 0),
-                measurements.get('rump_angle_degrees', 0),
+                measurements.get('body_length', 0),
+                measurements.get('height_at_withers', 0),
+                measurements.get('chest_width', 0),
+                measurements.get('rump_angle', 0),
                 measurements.get('body_condition_score', 0),
-                classification_result.get('breed', 'unknown'),
-                classification_result.get('breed_confidence', 0.0),
-                classification_result.get('image_path', ''),
-                filename or os.path.basename(classification_result.get('image_path', '')),
+                filename or 'unknown',
                 processed_by,
                 notes
             ))
@@ -219,6 +280,8 @@ class BPAIntegration:
             conn.commit()
             record_id = cursor.lastrowid
             conn.close()
+            
+            logger.info(f"Record saved with ID: {record_id}")
             return record_id
             
         except Exception as e:
@@ -232,6 +295,7 @@ class BPAIntegration:
             df = pd.read_sql_query("SELECT * FROM animal_records", conn)
             df.to_csv(output_path, index=False)
             conn.close()
+            logger.info(f"Records exported to {output_path}")
             return True
         except Exception as e:
             logger.error(f"Error exporting to CSV: {e}")
@@ -256,11 +320,41 @@ class BPAIntegration:
             result = []
             for record in records:
                 result.append(dict(zip(columns, record)))
+            
+            logger.info(f"Retrieved {len(result)} records")
             return result
             
         except Exception as e:
             logger.error(f"Error retrieving records: {e}")
             return []
+    
+    def generate_summary_report(self):
+        """Generate summary statistics"""
+        try:
+            records = self.get_records(limit=1000)
+            if not records:
+                return {"total_records": 0}
+            
+            df = pd.DataFrame(records)
+            
+            summary = {
+                "total_records": len(df),
+                "cattle_count": len(df[df['animal_type'] == 'cattle']),
+                "buffalo_count": len(df[df['animal_type'] == 'buffalo']),
+                "average_confidence": float(df['confidence'].mean()),
+                "average_measurements": {
+                    "body_length": float(df['body_length'].mean()),
+                    "height_at_withers": float(df['height_at_withers'].mean()),
+                    "chest_width": float(df['chest_width'].mean()),
+                    "rump_angle": float(df['rump_angle'].mean())
+                }
+            }
+            
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Error generating summary: {e}")
+            return {"error": str(e)}
 
 def load_model():
     """Load the trained model and metadata"""
@@ -271,7 +365,7 @@ def load_model():
         model_path = "cattle_buffalo_model.joblib"
         if Path(model_path).exists():
             model = joblib.load(model_path)
-            logger.info("Model loaded successfully")
+            logger.info("Classification model loaded successfully")
         else:
             logger.error(f"Model file not found: {model_path}")
             return False
@@ -283,109 +377,38 @@ def load_model():
                 metadata = json.load(f)
             logger.info("Metadata loaded successfully")
         else:
-            logger.error(f"Metadata file not found: {metadata_path}")
-            return False
+            logger.warning(f"Metadata file not found: {metadata_path}")
+            metadata = {"model_type": "Cattle/Buffalo Classifier", "version": "1.0"}
         
         return True
     except Exception as e:
         logger.error(f"Error loading model: {e}")
         return False
 
-def extract_features_from_image(image_array, bbox=None):
-    """Extract features from image array (same as training)"""
+def extract_simple_features(image_array):
+    """Extract simplified features for classification"""
     try:
-        # Convert to RGB if needed
-        if len(image_array.shape) == 3 and image_array.shape[2] == 3:
-            image = image_array
-        else:
-            image = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
+        # Resize image
+        image = cv2.resize(image_array, (224, 224))
         
-        # Crop to bounding box if provided
-        if bbox is not None:
-            xmin, ymin, xmax, ymax = bbox
-            image = image[ymin:ymax, xmin:xmax]
-        
-        # Resize image to standard size
-        image = cv2.resize(image, (224, 224))
-        
-        # Extract features (same as training script)
         features = []
         
-        # 1. Color histogram features
-        for i in range(3):  # RGB channels
-            hist = cv2.calcHist([image], [i], None, [32], [0, 256])
-            features.extend(hist.flatten())
+        # Basic color features (mean of each channel)
+        for i in range(3):
+            features.append(np.mean(image[:, :, i]))
+            features.append(np.std(image[:, :, i]))
         
-        # 2. HSV color features
-        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-        for i in range(3):  # HSV channels
-            hist = cv2.calcHist([hsv], [i], None, [32], [0, 256])
-            features.extend(hist.flatten())
-        
-        # 3. Texture features
-        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        lbp = compute_lbp(gray)
-        lbp_hist = cv2.calcHist([lbp], [0], None, [16], [0, 16])
-        features.extend(lbp_hist.flatten())
-        
-        # 4. Edge features
+        # Basic texture (edge density)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         edges = cv2.Canny(gray, 50, 150)
         edge_density = np.sum(edges > 0) / (edges.shape[0] * edges.shape[1])
         features.append(edge_density)
-        
-        # 5. Brightness and contrast
-        brightness = np.mean(gray)
-        contrast = np.std(gray)
-        features.extend([brightness, contrast])
-        
-        # 6. Shape features
-        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if contours:
-            largest_contour = max(contours, key=cv2.contourArea)
-            area = cv2.contourArea(largest_contour)
-            perimeter = cv2.arcLength(largest_contour, True)
-            if perimeter > 0:
-                circularity = 4 * np.pi * area / (perimeter * perimeter)
-            else:
-                circularity = 0
-        else:
-            area = 0
-            circularity = 0
-        
-        features.extend([area, circularity])
         
         return np.array(features)
         
     except Exception as e:
         logger.error(f"Error extracting features: {e}")
         return None
-
-def compute_lbp(image, radius=1, n_points=8):
-    """Compute Local Binary Pattern"""
-    rows, cols = image.shape
-    lbp = np.zeros_like(image)
-    
-    for i in range(radius, rows - radius):
-        for j in range(radius, cols - radius):
-            center = image[i, j]
-            binary_string = ''
-            
-            for k in range(n_points):
-                angle = 2 * np.pi * k / n_points
-                x = int(i + radius * np.cos(angle))
-                y = int(j + radius * np.sin(angle))
-                
-                if x < rows and y < cols:
-                    if image[x, y] >= center:
-                        binary_string += '1'
-                    else:
-                        binary_string += '0'
-                else:
-                    binary_string += '0'
-            
-            lbp[i, j] = int(binary_string, 2)
-    
-    return lbp
 
 # Initialize components
 measurement_processor = BodyMeasurementProcessor()
@@ -394,7 +417,17 @@ bpa_integration = BPAIntegration()
 @app.route('/')
 def index():
     """Serve the main interface"""
-    return render_template('index.html')
+    return jsonify({
+        "message": "Animal Classification API",
+        "version": "2.0",
+        "endpoints": {
+            "/api/classify": "POST - Classify animal and get measurements",
+            "/api/upload": "POST - Upload image for classification",
+            "/api/records": "GET - Get classification records",
+            "/api/summary": "GET - Get system summary",
+            "/api/health": "GET - Health check"
+        }
+    })
 
 @app.route('/api/classify', methods=['POST'])
 def classify_image():
@@ -419,45 +452,28 @@ def classify_image():
         if image is None:
             return jsonify({'error': 'Invalid image data'}), 400
         
-        # Extract features for classification
-        bbox = data.get('bbox')
-        features = extract_features_from_image(image, bbox)
-        
+        # Extract simple features for classification
+        features = extract_simple_features(image)
         if features is None:
             return jsonify({'error': 'Failed to extract features'}), 500
         
         # Make prediction
         features = features.reshape(1, -1)
         prediction = model.predict(features)[0]
-        probabilities = model.predict_proba(features)[0]
-        
-        # Get class names and probabilities
-        class_names = model.classes_
-        probabilities_dict = {class_name: float(prob) for class_name, prob in zip(class_names, probabilities)}
+        confidence = float(max(model.predict_proba(features)[0]))
         
         # Extract body measurements
         measurements = measurement_processor.process_image(image)
         
-        # Simple breed classification based on type and confidence
-        breed = "Unknown"
-        breed_confidence = 0.0
-        if prediction == "cattle":
-            breed = "Dairy Cattle" if probabilities_dict.get("cattle", 0) > 0.8 else "Beef Cattle"
-            breed_confidence = probabilities_dict.get("cattle", 0)
-        else:
-            breed = "Water Buffalo" if probabilities_dict.get("buffalo", 0) > 0.8 else "Swamp Buffalo"
-            breed_confidence = probabilities_dict.get("buffalo", 0)
+        if 'error' in measurements:
+            return jsonify({'error': measurements['error']}), 500
         
         # Compile complete result
         result = {
             'animal_type': prediction,
-            'confidence': float(max(probabilities)),
-            'probabilities': probabilities_dict,
-            'breed': breed,
-            'breed_confidence': breed_confidence,
+            'confidence': confidence,
             'measurements': measurements,
-            'timestamp': datetime.now().isoformat(),
-            'model_type': metadata.get('model_type', 'Unknown') if metadata else 'Unknown'
+            'timestamp': datetime.now().isoformat()
         }
         
         # Auto-save to BPA system
@@ -470,7 +486,12 @@ def classify_image():
         
         result['record_id'] = record_id
         
-        logger.info(f"Classification result: {prediction} (confidence: {result['confidence']:.3f})")
+        logger.info(f"Classification: {prediction} (confidence: {confidence:.3f})")
+        logger.info(f"Measurements - Length: {measurements['body_length']}, "
+                   f"Height: {measurements['height_at_withers']}, "
+                   f"Chest: {measurements['chest_width']}, "
+                   f"Rump Angle: {measurements['rump_angle']:.1f}°")
+        
         return jsonify(result)
         
     except Exception as e:
@@ -499,7 +520,7 @@ def upload_file():
             if image is None:
                 return jsonify({'error': 'Invalid image file'}), 400
             
-            # Convert to base64 for consistency with other endpoint
+            # Convert to base64 for consistency
             _, buffer = cv2.imencode('.jpg', image)
             image_base64 = base64.b64encode(buffer).decode('utf-8')
             
@@ -520,50 +541,7 @@ def upload_file():
         logger.error(f"Error in file upload: {e}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/batch-classify', methods=['POST'])
-def batch_classify():
-    """Handle batch processing of multiple images"""
-    try:
-        if 'files' not in request.files:
-            return jsonify({'error': 'No files uploaded'}), 400
-        
-        files = request.files.getlist('files')
-        if not files or files[0].filename == '':
-            return jsonify({'error': 'No files selected'}), 400
-        
-        results = []
-        for file in files:
-            if file:
-                filename = secure_filename(file.filename)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(filepath)
-                
-                # Process each file
-                image = cv2.imread(filepath)
-                if image is not None:
-                    _, buffer = cv2.imencode('.jpg', image)
-                    image_base64 = base64.b64encode(buffer).decode('utf-8')
-                    
-                    request_data = {
-                        'image': f"data:image/jpeg;base64,{image_base64}",
-                        'filename': filename
-                    }
-                    
-                    with app.test_client() as client:
-                        response = client.post('/api/classify', json=request_data)
-                        if response.status_code == 200:
-                            result = response.get_json()
-                            results.append(result)
-                        else:
-                            results.append({'filename': filename, 'error': 'Processing failed'})
-        
-        return jsonify({'results': results})
-    
-    except Exception as e:
-        logger.error(f"Error in batch classification: {e}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/records')
+@app.route('/api/records', methods=['GET'])
 def get_records():
     """Retrieve classification records"""
     try:
@@ -571,23 +549,58 @@ def get_records():
         offset = request.args.get('offset', 0, type=int)
         
         records = bpa_integration.get_records(limit=limit, offset=offset)
-        return jsonify({'records': records})
+        return jsonify({'records': records, 'count': len(records)})
     
     except Exception as e:
         logger.error(f"Error retrieving records: {e}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/export')
+@app.route('/api/summary', methods=['GET'])
+def get_summary():
+    """Get system summary and statistics"""
+    try:
+        summary = bpa_integration.generate_summary_report()
+        return jsonify(summary)
+    
+    except Exception as e:
+        logger.error(f"Error generating summary: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/export', methods=['GET'])
 def export_records():
     """Export records to CSV"""
     try:
-        output_path = "temp_export.csv"
+        output_path = "animal_records_export.csv"
         if bpa_integration.export_to_csv(output_path):
-            return send_file(output_path, as_attachment=True)
+            return send_file(output_path, as_attachment=True,
+                           download_name=f"animal_records_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
         else:
             return jsonify({'error': 'Export failed'}), 500
     
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/calibrate', methods=['POST'])
+def calibrate_measurements():
+    """Calibrate pixel measurements to real-world units"""
+    try:
+        data = request.get_json()
+        reference_length_cm = data.get('reference_length_cm')
+        reference_length_pixels = data.get('reference_length_pixels')
+        
+        if not reference_length_cm or not reference_length_pixels:
+            return jsonify({'error': 'Reference length in cm and pixels required'}), 400
+        
+        measurement_processor.calibrate_measurements(reference_length_cm, reference_length_pixels)
+        
+        return jsonify({
+            'message': 'Calibration successful',
+            'pixels_to_cm_ratio': measurement_processor.pixels_to_cm,
+            'units': measurement_processor.measurement_units
+        })
+    
+    except Exception as e:
+        logger.error(f"Calibration error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/health', methods=['GET'])
@@ -596,11 +609,8 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'model_loaded': model is not None,
-        'metadata_loaded': metadata is not None,
-        'components': {
-            'measurement_processor': True,
-            'bpa_integration': True
-        }
+        'database_initialized': True,
+        'timestamp': datetime.now().isoformat()
     })
 
 @app.route('/api/model_info', methods=['GET'])
@@ -614,7 +624,14 @@ def model_info():
 if __name__ == '__main__':
     # Load model on startup
     if load_model():
-        logger.info("Starting unified Flask server...")
-        app.run(host='0.0.0.0', port=5000, debug=True)
+        logger.info("Starting Animal Classification API Server...")
+        logger.info("Available endpoints:")
+        logger.info("  POST /api/classify - Classify animal with measurements")
+        logger.info("  POST /api/upload - Upload image for classification")
+        logger.info("  GET  /api/records - Get classification records")
+        logger.info("  GET  /api/summary - Get system summary")
+        logger.info("  GET  /api/health - Health check")
+        
+        app.run(host='0.0.0.0', port=5000, debug=False)
     else:
         logger.error("Failed to load model. Exiting.")
