@@ -3,131 +3,540 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Image - AgriVeda Breed</title>
+    <title>Animal Body Measurement Analysis - AgriVeda Breed</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Additional styles for body measurements */
+        .measurements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .measurement-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .measurement-item label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .measurement-item .value {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .quality-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            margin: 5px 0;
+            color: white;
+        }
+
+        .quality-badge.high { background: #4CAF50; }
+        .quality-badge.medium { background: #FF9800; }
+        .quality-badge.low { background: #f44336; }
+
+        .animal-silhouette {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .measurement-line {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px dashed white;
+        }
+
+        .measurement-line.length {
+            top: 50%;
+            left: 10%;
+            height: 4px;
+        }
+
+        .measurement-line.height {
+            top: 10%;
+            left: 50%;
+            width: 4px;
+        }
+
+        .measurement-line span {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .angle-indicator {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .results-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #4CAF50;
+            border-bottom-color: #4CAF50;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .export-section {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
             <div class="brand">
                 <img src="LOGO.png" alt="AgriVeda Breed Logo" class="logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="logo-fallback" style="display: none;">BB</div>
+                <div class="logo-fallback" style="display: none;">AB</div>
                 <span>AgriVeda Breed</span>
             </div>
             <ul class="nav-links">
                 <li><a href="home.html">Home</a></li>
-                <li><a href="upload.html" class="active">Upload</a></li>
+                <li><a href="upload.html" class="active">Body Measurements</a></li>
                 <li><a href="info.html">Info</a></li>
                 <li><a href="breeds.html">Breeds</a></li>
                 <li><a href="contact.html">Contact Us</a></li>
             </ul>
         </div>
     </nav>
+
     <div class="container">
         <header>
-            <a id="upload"></a>
-            <h1>Upload & Analyze Image</h1>
-            <p>Upload an image of cattle or buffalo for instant AI analysis</p>
+            <h1>Animal Body Measurement Analysis</h1>
+            <p>AI-powered cattle and buffalo classification with precise body measurements</p>
         </header>
 
         <main>
-            <div class="upload-section" id="upload">
+            <!-- Upload Section -->
+            <section class="upload-section">
                 <div class="upload-area" id="uploadArea">
                     <div class="upload-content">
-                        <div class="upload-icon">⚡</div>
-                        <h3>Upload Image</h3>
+                        <div class="upload-icon">📐</div>
+                        <h3>Upload Animal Image</h3>
                         <p>Drag & drop an image here or click to browse</p>
-                        <input type="file" id="fileInput" accept="image/jpeg,image/jpg,image/png" hidden>
+                        <input type="file" id="fileInput" accept="image/jpeg,image/jpg,image/png,image/*" hidden>
                         <button class="browse-btn" onclick="document.getElementById('fileInput').click()">
-                            Browse Files
+                            Choose Image
                         </button>
                     </div>
                 </div>
-            </div>
+            </section>
 
+            <!-- Preview Section -->
             <div class="preview-section" id="previewSection" style="display: none;">
                 <h3>Image Preview</h3>
                 <div class="image-container">
                     <img id="previewImage" alt="Preview">
                 </div>
-                <button class="classify-btn" id="classifyBtn">
-                    <span class="btn-text">Analyze Image</span>
+                <button class="classify-btn" id="analyzeBtn">
+                    <span class="btn-text">Analyze Body Measurements</span>
                     <div class="loading-spinner" style="display: none;"></div>
                 </button>
             </div>
 
-            <div class="result-section" id="resultSection" style="display: none;" aria-live="polite">
-                <a id="results"></a>
-                <h3>Analysis Result</h3>
-                <div class="result-card">
-                    <div class="result-item">
-                        <span class="label">Predicted Type:</span>
-                        <span class="value" id="predictedType">-</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">Confidence Score:</span>
-                        <span class="value" id="confidenceScore">-</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">Predicted Breed:</span>
-                        <span class="value" id="predictedBreed">-</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">Breed Confidence:</span>
-                        <span class="value" id="breedConfidence">-</span>
-                    </div>
-                    <div class="confidence-bar">
-                        <div class="confidence-fill" id="confidenceFill"></div>
+            <!-- Results Section -->
+            <div class="result-section" id="resultSection" style="display: none;">
+                <h3>Analysis Results</h3>
+                
+                <!-- Results Tabs -->
+                <div class="results-tabs">
+                    <button class="tab-button active" onclick="showTab('classification')">Classification</button>
+                    <button class="tab-button" onclick="showTab('measurements')">Body Measurements</button>
+                    <button class="tab-button" onclick="showTab('visualization')">Visualization</button>
+                </div>
+
+                <!-- Classification Tab -->
+                <div id="classification-tab" class="tab-content active">
+                    <div class="result-card">
+                        <div class="result-item">
+                            <span class="label">Animal Type:</span>
+                            <span class="value" id="animalType">-</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">Confidence Level:</span>
+                            <span class="value" id="confidenceLevel">-</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">Quality Assessment:</span>
+                            <span class="value" id="qualityAssessment">-</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidenceFill"></div>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="breed-info" id="breedInfo" style="display: none;">
-                    <h4>Breed Information</h4>
-                    <div class="breed-details" id="breedDetails">
-                        <!-- Breed details will be populated here -->
+
+                <!-- Measurements Tab -->
+                <div id="measurements-tab" class="tab-content">
+                    <div class="result-card">
+                        <h4>Body Measurements Analysis</h4>
+                        <div class="measurements-grid" id="measurementsGrid">
+                            <!-- Measurements will be populated here -->
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="bodyLengthValue">-</div>
+                                <div class="stat-label">Body Length</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="heightWithersValue">-</div>
+                                <div class="stat-label">Height at Withers</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="chestWidthValue">-</div>
+                                <div class="stat-label">Chest Width</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="rumpAngleValue">-</div>
+                                <div class="stat-label">Rump Angle</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="debug-info" id="debugInfo" style="display: none;">
-                    <h4>Analysis Details</h4>
-                    <div id="debugContent"></div>
+
+                <!-- Visualization Tab -->
+                <div id="visualization-tab" class="tab-content">
+                    <div class="result-card">
+                        <h4>Measurement Visualization</h4>
+                        <div class="animal-silhouette" id="animalSilhouette">
+                            <!-- Visualization will be rendered here -->
+                        </div>
+                        <div class="body-condition">
+                            <strong>Body Condition Score:</strong> 
+                            <span id="bodyConditionScore">-</span>/5.0
+                        </div>
+                    </div>
                 </div>
             </div>
 
+            <!-- Export Section -->
+            <div class="export-section">
+                <h3>Data Management</h3>
+                <p>Export your analysis records for further analysis</p>
+                <button class="export-btn" id="exportBtn">Export to CSV</button>
+            </div>
+
+            <!-- Instructions Section -->
             <div class="instructions-section">
-                <h3>How to Get Best Results</h3>
+                <h3>How to Get Accurate Measurements</h3>
                 <div class="instructions-grid">
                     <div class="instruction-card">
-                        <div class="instruction-icon">📸</div>
-                        <h4>Clear Image</h4>
-                        <p>Use high-resolution images with good lighting and minimal background interference</p>
+                        <div class="instruction-icon">📏</div>
+                        <h4>Side View Preferred</h4>
+                        <p>Capture the animal from a side view for accurate body length and height measurements</p>
+                    </div>
+                    <div class="instruction-card">
+                        <div class="instruction-icon">🌞</div>
+                        <h4>Good Lighting</h4>
+                        <p>Ensure proper lighting to help the AI detect body contours accurately</p>
                     </div>
                     <div class="instruction-card">
                         <div class="instruction-icon">🎯</div>
-                        <h4>Focus on Animal</h4>
-                        <p>Ensure the animal is clearly visible and takes up a significant portion of the image</p>
+                        <h4>Clear Background</h4>
+                        <p>Use a contrasting background to help distinguish the animal's outline</p>
                     </div>
                     <div class="instruction-card">
-                        <div class="instruction-icon">💡</div>
-                        <h4>Good Lighting</h4>
-                        <p>Natural lighting works best for accurate color analysis and feature detection</p>
-                    </div>
-                    <div class="instruction-card">
-                        <div class="instruction-icon">📐</div>
-                        <h4>Proper Angle</h4>
-                        <p>Side view or three-quarter view provides the best results for breed identification</p>
+                        <div class="instruction-icon">📷</div>
+                        <h4>Full Body Visible</h4>
+                        <p>Ensure the entire animal body is visible in the frame for complete analysis</p>
                     </div>
                 </div>
             </div>
         </main>
 
         <footer>
-            <p>🔬 Professional AI Analysis • High Accuracy Classification • Industry-Grade Technology</p>
+            <p>🔬 Professional Body Measurement Analysis • AI-Powered Accuracy • Agricultural Technology</p>
         </footer>
     </div>
 
-    <script src="breed-database.js"></script>
-    <script src="ml_classifier.js"></script>
-    <script src="script.js"></script>
+    <script>
+        // Tab navigation function
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // Activate selected button
+            event.currentTarget.classList.add('active');
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeUploadHandler();
+            initializeExportHandler();
+        });
+
+        function initializeUploadHandler() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const previewSection = document.getElementById('previewSection');
+            const previewImage = document.getElementById('previewImage');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const resultSection = document.getElementById('resultSection');
+
+            // Drag and drop functionality
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#4CAF50';
+                uploadArea.style.backgroundColor = '#f0f8f0';
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.borderColor = '#ddd';
+                uploadArea.style.backgroundColor = '#f9f9f9';
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = '#ddd';
+                uploadArea.style.backgroundColor = '#f9f9f9';
+                
+                const files = e.dataTransfer.files;
+                if (files.length && files[0].type.startsWith('image/')) {
+                    handleFileSelect(files[0]);
+                }
+            });
+
+            // File input change handler
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+
+            // Analyze button handler
+            analyzeBtn.addEventListener('click', analyzeImage);
+
+            function handleFileSelect(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    previewSection.style.display = 'block';
+                    resultSection.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+
+            async function analyzeImage() {
+                if (!fileInput.files.length) {
+                    alert('Please select an image first');
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const analyzeBtnText = analyzeBtn.querySelector('.btn-text');
+                const spinner = analyzeBtn.querySelector('.loading-spinner');
+
+                // Show loading state
+                analyzeBtnText.textContent = 'Analyzing...';
+                spinner.style.display = 'block';
+                analyzeBtn.disabled = true;
+
+                try {
+                    // Simulate API call - replace with actual API integration
+                    const results = await simulateAnalysis(file);
+                    displayResults(results);
+                    resultSection.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('Analysis error:', error);
+                    alert('Analysis failed. Please try again.');
+                } finally {
+                    // Reset button state
+                    analyzeBtnText.textContent = 'Analyze Body Measurements';
+                    spinner.style.display = 'none';
+                    analyzeBtn.disabled = false;
+                }
+            }
+
+            // Simulate analysis - replace with actual API call
+            async function simulateAnalysis(file) {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        // Mock data - replace with actual API response
+                        resolve({
+                            animalType: Math.random() > 0.5 ? 'Cattle' : 'Buffalo',
+                            confidence: Math.random() * 30 + 70, // 70-100%
+                            measurements: {
+                                bodyLength: Math.floor(Math.random() * 200 + 400), // 400-600px
+                                heightAtWithers: Math.floor(Math.random() * 150 + 300), // 300-450px
+                                chestWidth: Math.floor(Math.random() * 100 + 150), // 150-250px
+                                rumpAngle: Math.random() * 30 + 35, // 35-65 degrees
+                                bodyConditionScore: (Math.random() * 3 + 2).toFixed(1) // 2.0-5.0
+                            },
+                            quality: Math.random() > 0.3 ? 'High' : (Math.random() > 0.5 ? 'Medium' : 'Low')
+                        });
+                    }, 2000);
+                });
+            }
+
+            function displayResults(results) {
+                // Update classification tab
+                document.getElementById('animalType').textContent = results.animalType;
+                document.getElementById('confidenceLevel').textContent = `${results.confidence.toFixed(1)}%`;
+                document.getElementById('qualityAssessment').textContent = results.quality;
+                
+                const confidenceFill = document.getElementById('confidenceFill');
+                confidenceFill.style.width = `${results.confidence}%`;
+                confidenceFill.style.background = results.confidence >= 80 ? '#4CAF50' : 
+                                                results.confidence >= 60 ? '#FF9800' : '#f44336';
+
+                // Update measurements tab
+                const measurements = results.measurements;
+                document.getElementById('bodyLengthValue').textContent = `${measurements.bodyLength}px`;
+                document.getElementById('heightWithersValue').textContent = `${measurements.heightAtWithers}px`;
+                document.getElementById('chestWidthValue').textContent = `${measurements.chestWidth}px`;
+                document.getElementById('rumpAngleValue').textContent = `${measurements.rumpAngle.toFixed(1)}°`;
+
+                // Update measurements grid
+                const measurementsGrid = document.getElementById('measurementsGrid');
+                measurementsGrid.innerHTML = `
+                    <div class="measurement-item">
+                        <label>Body Length:</label>
+                        <span class="value">${measurements.bodyLength} pixels</span>
+                    </div>
+                    <div class="measurement-item">
+                        <label>Height at Withers:</label>
+                        <span class="value">${measurements.heightAtWithers} pixels</span>
+                    </div>
+                    <div class="measurement-item">
+                        <label>Chest Width:</label>
+                        <span class="value">${measurements.chestWidth} pixels</span>
+                    </div>
+                    <div class="measurement-item">
+                        <label>Rump Angle:</label>
+                        <span class="value">${measurements.rumpAngle.toFixed(1)}°</span>
+                    </div>
+                `;
+
+                // Update visualization tab
+                document.getElementById('bodyConditionScore').textContent = measurements.bodyConditionScore;
+                updateVisualization(measurements);
+            }
+
+            function updateVisualization(measurements) {
+                const silhouette = document.getElementById('animalSilhouette');
+                silhouette.innerHTML = `
+                    <div class="measurement-line length" 
+                         style="width: ${Math.min(measurements.bodyLength / 8, 80)}%; top: 45%; left: 10%;">
+                        <span style="top: -25px; left: 50%; transform: translateX(-50%);">
+                            Length: ${measurements.bodyLength}px
+                        </span>
+                    </div>
+                    <div class="measurement-line height" 
+                         style="height: ${Math.min(measurements.heightAtWithers / 4, 70)}%; top: 15%; left: 60%;">
+                        <span style="left: -120px; top: 50%; transform: translateY(-50%);">
+                            Height: ${measurements.heightAtWithers}px
+                        </span>
+                    </div>
+                    <div class="angle-indicator">
+                        Rump Angle: ${measurements.rumpAngle.toFixed(1)}°
+                    </div>
+                `;
+            }
+        }
+
+        function initializeExportHandler() {
+            const exportBtn = document.getElementById('exportBtn');
+            exportBtn.addEventListener('click', () => {
+                alert('Export functionality will be implemented with the backend API');
+                // This will be implemented with the actual backend integration
+            });
+        }
+    </script>
 </body>
 </html>
