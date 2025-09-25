@@ -242,7 +242,8 @@ class ResultsUI {
             </div>
         `;
         
-        document.getElementById('basicResults').innerHTML = basicInfoHtml;
+        const element = document.getElementById('basicResults');
+        if (element) element.innerHTML = basicInfoHtml;
     }
 
     displayBodyMeasurements(measurements) {
@@ -278,7 +279,8 @@ class ResultsUI {
             </div>
         `;
         
-        document.getElementById('measurementResults').innerHTML = measurementsHtml;
+        const element = document.getElementById('measurementResults');
+        if (element) element.innerHTML = measurementsHtml;
     }
 
     displayQualityAssessment(results) {
@@ -299,7 +301,8 @@ class ResultsUI {
             </div>
         `;
         
-        document.getElementById('qualityResults').innerHTML = qualityHtml;
+        const element = document.getElementById('qualityResults');
+        if (element) element.innerHTML = qualityHtml;
     }
 
     displayVisualization(results) {
@@ -324,7 +327,8 @@ class ResultsUI {
             </div>
         `;
         
-        document.getElementById('visualizationResults').innerHTML = vizHtml;
+        const element = document.getElementById('visualizationResults');
+        if (element) element.innerHTML = vizHtml;
     }
 
     clearResults() {
@@ -344,7 +348,8 @@ class ResultsUI {
             </div>
         `;
         
-        document.getElementById('basicResults').innerHTML = errorHtml;
+        const element = document.getElementById('basicResults');
+        if (element) element.innerHTML = errorHtml;
     }
 
     showLoading() {
@@ -356,7 +361,8 @@ class ResultsUI {
             </div>
         `;
         
-        document.getElementById('basicResults').innerHTML = loadingHtml;
+        const element = document.getElementById('basicResults');
+        if (element) element.innerHTML = loadingHtml;
     }
 }
 
@@ -370,7 +376,7 @@ function initializeAnimalClassifier() {
     const fileInput = document.getElementById('imageUpload');
     const analyzeBtn = document.getElementById('analyzeBtn');
     
-    if (analyzeBtn) {
+    if (analyzeBtn && fileInput) {
         analyzeBtn.addEventListener('click', async () => {
             if (!fileInput.files.length) {
                 alert('Please select an image first');
@@ -407,9 +413,11 @@ function initializeAnimalClassifier() {
             
             const files = e.dataTransfer.files;
             if (files.length && files[0].type.startsWith('image/')) {
-                fileInput.files = files;
-                // Trigger analysis automatically
-                if (analyzeBtn) analyzeBtn.click();
+                if (fileInput) {
+                    fileInput.files = files;
+                    // Trigger analysis automatically
+                    if (analyzeBtn) analyzeBtn.click();
+                }
             }
         });
     }
@@ -430,3 +438,7 @@ function initializeAnimalClassifier() {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', initializeAnimalClassifier);
+
+// Export classes for external use
+window.AnimalClassifier = AnimalClassifier;
+window.ResultsUI = ResultsUI;
